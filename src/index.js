@@ -26,12 +26,13 @@ try {
 
 const users = db.collection('users');
 const sessions = db.collection('sessions');
+const values = db.collection('values');
 
 //sign-in
 app.post("/sign-in", async (req, res) => {
     const { email, password } = req.body;
     const user = await users.findOne({ email });
-    
+
     if (user && bcrypt.compareSync(password, user.password)) {
         const token = uuid();
         await sessions.insertOne({
@@ -48,7 +49,7 @@ app.post("/sign-in", async (req, res) => {
 app.post("/sign-up", async (req, res) => {
     const user = req.body;
     const passwordHash = bcrypt.hashSync(user.password, 10);
-    await users.insertOne({...user, password: passwordHash})
+    await users.insertOne({ ...user, password: passwordHash })
     res.sendStatus(201);
 })
 
@@ -57,7 +58,7 @@ app.get("/", async (req, res) => {
     const { authorization } = req.headers;
     const token = authorization?.replace('Bearer ', '');
 
-    if(!token) return res.sendStatus(401);
+    if (!token) return res.sendStatus(401);
 
     const session = await sessions.findOne({ token });
 
@@ -70,11 +71,52 @@ app.get("/", async (req, res) => {
     })
 
     if (user) {
-        res.send("Foi!");
+        if (values.find()) {
+            try {
+                const userValues = await values
+                    .find()
+                    .toArray();
+                res.send(userValues);
+            } catch (err) {
+                console.log(err)
+                res.sendStatus(500);
+            }
+        } else {
+            res.send([]);
+        }
     } else {
         res.sendStatus(401);
     }
 })
 
+app.post("/", async (req, res) => {
+    const { amount, description, type } = req.body;
+    const { authorization } = req.headers;
+    const token = authorization?.replace('Bearer ', '');
+    if (!token) return res.sendStatus(401);
+
+    const session = await sessions.findOne({ token });
+    if (!session) {
+        return res.sendStatus(401);
+    }
+
+    const user = await users.findOne({
+        _id: session.userId
+    })
+
+
+    if (user) {
+        try {
+            await values.insertOne({
+                'amount': amount,
+                'description': description,
+                'type': type
+            });
+            res.sendStatus(201)
+        } catch (err) {
+            res.sendStatus(500)
+        }
+    };
+})
 
 app.listen(5000, () => console.log("Port 5000"));

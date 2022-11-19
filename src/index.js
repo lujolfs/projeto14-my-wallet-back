@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 import joi from "joi";
 import dotenv from "dotenv";
 import bcrypt from 'bcrypt';
+import { v4 as uuid } from 'uuid';
 
 const app = express();
 
@@ -23,13 +24,21 @@ try {
     console.log(err);
 }
 
+const users = db.collection('users');
+const sessions = db.collection('sessions');
+
 //sign-in
-app.post("/", async (req, res) => {
+app.post("/sign-in", async (req, res) => {
     const { email, password } = req.body;
-    const user = await db.collection('users').findOne({ email });
+    const user = await users.findOne({ email });
     
     if (user && bcrypt.compareSync(password, user.password)) {
-        res.send("Logou")
+        const token = uuid();
+        await sessions.insertOne({
+            userId: user._id,
+            token
+        })
+        res.send(token)
     } else {
         res.send("Não")
     }
@@ -39,8 +48,32 @@ app.post("/", async (req, res) => {
 app.post("/sign-up", async (req, res) => {
     const user = req.body;
     const passwordHash = bcrypt.hashSync(user.password, 10);
-    await db.collection('users').insertOne({...user, password: passwordHash})
+    await users.insertOne({...user, password: passwordHash})
     res.sendStatus(201);
+})
+
+//tela principal
+app.get("/", async (req, res) => {
+    const { authorization } = req.headers;
+    const token = authorization?.replace('Bearer ', '');
+
+    if(!token) return res.sendStatus(401);
+
+    const session = await sessions.findOne({ token });
+
+    if (!session) {
+        return res.sendStatus(401);
+    }
+
+    const user = await users.findOne({
+        _id: session.userId
+    })
+
+    if (user) {
+        res.send("Foi!");
+    } else {
+        res.sendStatus(401);
+    }
 })
 
 

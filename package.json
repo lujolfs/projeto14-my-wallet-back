@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "bcrypt": "^5.1.0",
     "cors": "^2.8.5",
     "dayjs": "^1.11.6",
     "dotenv": "^16.0.3",
@@ -11,5 +12,24 @@
   },
   "devDependencies": {
     "nodemon": "^2.0.20"
-  }
+  },
+  "name": "projeto14-my-wallet-back",
+  "description": "",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "nodemon src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lujolfs/projeto14-my-wallet-back.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lujolfs/projeto14-my-wallet-back/issues"
+  },
+  "homepage": "https://github.com/lujolfs/projeto14-my-wallet-back#readme"
 }

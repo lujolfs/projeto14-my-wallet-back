@@ -7,6 +7,13 @@ import dotenv from "dotenv";
 import bcrypt from 'bcrypt';
 import { v4 as uuid } from 'uuid';
 
+const userSchema=joi.object({
+  name: joi.string().required(),
+  email: joi.string().email().required(),
+  password: joi.string().required(),
+  repeat_password: joi.string().required().valid(joi.ref('password')),
+})
+
 const app = express();
 
 //configs
@@ -14,7 +21,7 @@ app.use(cors());
 app.use(express.json());
 dotenv.config();
 
-const mongoClient = new MongoClient(process.env.MONGO_URI);
+const mongoClient = new MongoClient("mongodb://localhost:27017");
 let db;
 
 try {
@@ -49,8 +56,31 @@ app.post("/sign-in", async (req, res) => {
 app.post("/sign-up", async (req, res) => {
     const user = req.body;
     const passwordHash = bcrypt.hashSync(user.password, 10);
-    await users.insertOne({ ...user, password: passwordHash })
-    res.sendStatus(201);
+    const uemail = {email: req.body.email}
+    const validation = userSchema.validate(user, { abortEarly: false })
+
+    if (validation.error) {
+      const error = validation.error.details.map(detail => detail.message)
+      res.status(422).send(error);
+      return
+    }
+
+    try {
+      const check = await users.findOne(uemail);
+      if (check) {
+        res.sendStatus(409);
+        return;
+      } else {
+        await users.insertOne({
+          "name": req.body.name,
+          "email": req.body.email,
+          "password": passwordHash
+        });
+        res.sendStatus(201);
+      };
+    } catch (err) {
+      res.status(500).send(err);
+    }
 })
 
 //tela principal
